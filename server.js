@@ -25,7 +25,7 @@ app.use("/api/performance", performanceRoutes);
 app.use("/api/reports", reportsRoutes);
 app.use("/api/settings", settingsRoutes);
 
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 4000;
 
 app.listen(PORT, () => {
   console.log(`HRFlow backend running on port ${PORT}`);
