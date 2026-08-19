@@ -1,104 +1,22 @@
-import {
-  getPerformanceReport,
-  getAttendanceReport,
-  getPayrollReport,
-  getPendingLeaveCount
-} from "../models/reportsModel.js";
+import { getReports } from "../models/reportsModel.js";
 
-
-// ===============================
-// PERFORMANCE REPORT
-// ===============================
-
-export async function performanceReport(req, res) {
+export const getReportsData = async (req, res) => {
   try {
-    const data = await getPerformanceReport();
+    const reports = await getReports();
 
     res.status(200).json({
       success: true,
-      data
+      count: reports.length,
+      data: reports
     });
 
   } catch (error) {
-    console.error("Performance report error:", error);
+    console.error("Reports error:", error);
 
     res.status(500).json({
       success: false,
-      message: "Failed to generate performance report"
+      message: "Failed to retrieve reports data",
+      error: error.message
     });
   }
-}
-
-
-// ===============================
-// ATTENDANCE REPORT
-// ===============================
-
-export async function attendanceReport(req, res) {
-  try {
-    const data = await getAttendanceReport();
-
-    res.status(200).json({
-      success: true,
-      data
-    });
-
-  } catch (error) {
-    console.error("Attendance report error:", error);
-
-    res.status(500).json({
-      success: false,
-      message: "Failed to generate attendance report"
-    });
-  }
-}
-
-
-// ===============================
-// PAYROLL REPORT
-// ===============================
-
-export async function payrollReport(req, res) {
-  try {
-    const data = await getPayrollReport();
-
-    res.status(200).json({
-      success: true,
-      data
-    });
-
-  } catch (error) {
-    console.error("Payroll report error:", error);
-
-    res.status(500).json({
-      success: false,
-      message: "Failed to generate payroll report"
-    });
-  }
-}
-
-
-// ===============================
-// PENDING LEAVE
-// ===============================
-
-export async function pendingLeaveReport(req, res) {
-  try {
-    const pendingLeave = await getPendingLeaveCount();
-
-    res.status(200).json({
-      success: true,
-      data: {
-        pendingLeave
-      }
-    });
-
-  } catch (error) {
-    console.error("Pending leave error:", error);
-
-    res.status(500).json({
-      success: false,
-      message: "Failed to retrieve pending leave"
-    });
-  }
-}
+};

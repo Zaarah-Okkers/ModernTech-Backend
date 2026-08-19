@@ -1,10 +1,6 @@
 import db from "../config/db.js";
 
-// ===============================
-// PERFORMANCE REPORT
-// ===============================
-
-export async function getPerformanceReport() {
+export const getReports = async () => {
   const [rows] = await db.query(`
     SELECT
       e.employees_id AS employee_id,
@@ -12,83 +8,61 @@ export async function getPerformanceReport() {
       e.position,
       e.contact,
       d.department_name AS department,
+
       p.performance_score,
-      p.goal_completion
-    FROM performance p
-    INNER JOIN employees e
-      ON p.employees_id = e.employees_id
-    INNER JOIN departments d
+      p.goal_completion,
+
+      pr.hours_worked,
+      pr.leave_deductions,
+      pr.final_salary,
+
+      COUNT(DISTINCT CASE
+        WHEN a.status = 'Present'
+        THEN a.attendance_id
+      END) AS days_present,
+
+      COUNT(DISTINCT CASE
+        WHEN a.status = 'Absent'
+        THEN a.attendance_id
+      END) AS days_absent,
+
+      COUNT(DISTINCT CASE
+        WHEN lr.status = 'Pending'
+        THEN lr.leave_id
+      END) AS pending_leave
+
+    FROM employees e
+
+    LEFT JOIN departments d
       ON e.department_id = d.department_id
-    ORDER BY e.employees_id
-  `);
 
-  return rows;
-}
+    LEFT JOIN performance p
+      ON e.employees_id = p.employees_id
 
+    LEFT JOIN payroll pr
+      ON e.employees_id = pr.employees_id
 
-// ===============================
-// ATTENDANCE REPORT
-// ===============================
+    LEFT JOIN attendance a
+      ON e.employees_id = a.employee_id
 
-export async function getAttendanceReport() {
-  const [rows] = await db.query(`
-    SELECT
-      e.employees_id AS employee_id,
-      CONCAT(e.first_name, ' ', e.last_name) AS employee_name,
+    LEFT JOIN leave_request lr
+      ON e.employees_id = lr.employees_id
+
+    GROUP BY
+      e.employees_id,
+      e.first_name,
+      e.last_name,
       e.position,
       e.contact,
-      d.department_name AS department,
-      a.attendance_date,
-      a.status
-    FROM attendance a
-    INNER JOIN employees e
-      ON a.employee_id = e.employees_id
-    INNER JOIN departments d
-      ON e.department_id = d.department_id
-    ORDER BY a.attendance_date DESC
+      d.department_name,
+      p.performance_score,
+      p.goal_completion,
+      pr.hours_worked,
+      pr.leave_deductions,
+      pr.final_salary
+
+    ORDER BY e.employees_id;
   `);
 
   return rows;
-}
-
-
-// ===============================
-// PAYROLL REPORT
-// ===============================
-
-export async function getPayrollReport() {
-  const [rows] = await db.query(`
-    SELECT
-      e.employees_id AS employee_id,
-      CONCAT(e.first_name, ' ', e.last_name) AS employee_name,
-      e.position,
-      e.contact,
-      d.department_name AS department,
-      p.hours_worked,
-      p.leave_deductions,
-      p.final_salary
-    FROM payroll p
-    INNER JOIN employees e
-      ON p.employees_id = e.employees_id
-    INNER JOIN departments d
-      ON e.department_id = d.department_id
-    ORDER BY e.employees_id
-  `);
-
-  return rows;
-}
-
-
-// ===============================
-// PENDING LEAVE
-// ===============================
-
-export async function getPendingLeaveCount() {
-  const [rows] = await db.query(`
-    SELECT COUNT(*) AS pending_leave
-    FROM leave_request
-    WHERE status = 'Pending'
-  `);
-
-  return rows[0].pending_leave;
-}
+};
