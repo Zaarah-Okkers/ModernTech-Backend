@@ -5,8 +5,8 @@ import employeeRoutes from './routes/employees.js';
 import dashboardRoutes from './routes/dashboard.js';
 import payrollRoutes from './routes/payroll.js';
 import leaveRoutes from './routes/leave.js';
-import attendanceRoutes from './routes/attendance.js';
-import settingsRoutes from './routes/settings.js';
+//import attendanceRoutes from './routes/attendance.js';
+import settingsRoutes from './routes/settingsRoutes.js';
 
 dotenv.config();
 
@@ -20,7 +20,7 @@ app.use('/api/employees', employeeRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/payroll', payrollRoutes);
 app.use('/api/leave', leaveRoutes);
-app.use('/api/attendance', attendanceRoutes);
+//app.use('/api/attendance', attendanceRoutes);
 app.use('/api/settings', settingsRoutes);
 
 // Health check
