@@ -14,7 +14,7 @@ app.use("/api/leave", leaveRoutes);
 
 app.use("/api/leave", leaveRoutes);
 
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 4000;
 
 app.get("/", (req, res) => {
     res.json({
