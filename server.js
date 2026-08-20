@@ -16,16 +16,40 @@ import settingsRoutes from './routes/settingsRoutes.js';
 dotenv.config();
 
 const app = express();
-const PORT = process.env.PORT || 4000;
+const PORT = Number(process.env.PORT) || 4000;
+
+const allowedOrigins = [
+    'http://localhost:4000',
+    'http://127.0.0.1:4000',
+    'http://localhost:3000',
+    'http://127.0.0.1:5500',
+    'http://localhost:5500',
+    'https://hrflow-xg3y.onrender.com',
+    'https://moderntech-backend-1.onrender.com',
+    'http://moderntech-backend-1.onrender.com'
+];
 
 // Middleware
 app.use(cors({
-    origin: [
-        'http://localhost:4000',
-        'http://127.0.0.1:5500',
-        'http://localhost:5500',
-        'https://hrflow-xg3y.onrender.com'
-    ],
+    origin: (origin, callback) => {
+        if (!origin || allowedOrigins.includes(origin)) {
+            callback(null, true);
+            return;
+        }
+
+        callback(new Error(`CORS blocked for origin: ${origin}`));
+    },
+    credentials: true
+}));
+app.options('*', cors({
+    origin: (origin, callback) => {
+        if (!origin || allowedOrigins.includes(origin)) {
+            callback(null, true);
+            return;
+        }
+
+        callback(new Error(`CORS blocked for origin: ${origin}`));
+    },
     credentials: true
 }));
 
