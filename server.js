@@ -1,9 +1,13 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
+
 import { testConnection } from './config/database.js';
 import authRoutes from './routes/auth.js';
 import payrollRoutes from './routes/payroll.js';
+import performanceRoutes from './routes/performanceRoutes.js';
+import reportsRoutes from './routes/reportsRoutes.js';
+import settingsRoutes from './routes/settingsRoutes.js';
 
 dotenv.config();
 
@@ -35,6 +39,15 @@ app.use('/api/auth', authRoutes);
 
 // Payroll Routes
 app.use('/api/payroll', payrollRoutes);
+
+// Performance Routes
+app.use('/api/performance', performanceRoutes);
+
+// Reports Routes
+app.use('/api/reports', reportsRoutes);
+
+// Settings Routes
+app.use('/api/settings', settingsRoutes);
 
 // 404 handler
 app.use((req, res) => {
