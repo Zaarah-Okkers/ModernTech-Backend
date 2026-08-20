@@ -7,6 +7,7 @@ import payrollRoutes from './routes/payroll.js';
 import leaveRoutes from './routes/leave.js';
 //import attendanceRoutes from './routes/attendance.js';
 import settingsRoutes from './routes/settingsRoutes.js';
+import authRoutes from './routes/auth.js';
 
 dotenv.config();
 
@@ -22,6 +23,7 @@ app.use('/api/payroll', payrollRoutes);
 app.use('/api/leave', leaveRoutes);
 //app.use('/api/attendance', attendanceRoutes);
 app.use('/api/settings', settingsRoutes);
+app.use('/api/auth', authRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {
