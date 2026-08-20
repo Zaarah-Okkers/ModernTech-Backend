@@ -4,7 +4,11 @@ import dotenv from 'dotenv';
 
 import { testConnection } from './config/database.js';
 import authRoutes from './routes/auth.js';
+import employeeRoutes from './routes/employees.js';
+import dashboardRoutes from './routes/dashboard.js';
 import payrollRoutes from './routes/payroll.js';
+import leaveRoutes from './routes/leave.js';
+// import attendanceRoutes from './routes/attendance.js';
 import performanceRoutes from './routes/performanceRoutes.js';
 import reportsRoutes from './routes/reportsRoutes.js';
 import settingsRoutes from './routes/settingsRoutes.js';
@@ -17,48 +21,35 @@ const PORT = process.env.PORT || 4000;
 // Middleware
 app.use(cors({
     origin: [
-    'http://localhost:4000',
-    'http://127.0.0.1:5500',
-    'http://localhost:5500',
-    'https://hrflow-xg3y.onrender.com'
-],
+        'http://localhost:4000',
+        'http://127.0.0.1:5500',
+        'http://localhost:5500',
+        'https://hrflow-xg3y.onrender.com'
+    ],
     credentials: true
 }));
+
 app.use(express.json());
+
+// Routes
+app.use('/api/employees', employeeRoutes);
+app.use('/api/dashboard', dashboardRoutes);
+app.use('/api/payroll', payrollRoutes);
+app.use('/api/leave', leaveRoutes);
+// app.use('/api/attendance', attendanceRoutes);
+app.use('/api/performance', performanceRoutes);
+app.use('/api/reports', reportsRoutes);
+app.use('/api/settings', settingsRoutes);
+app.use('/api/auth', authRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {
-    res.json({
-        status: 'OK',
-        timestamp: new Date().toISOString(),
-        message: 'HRFlow API is running'
-    });
+    res.json({ status: 'OK', message: 'HRFlow API is running' });
 });
-
-// ============================================
-// API ROUTES
-// ============================================
-
-// Auth Routes (Login)
-app.use('/api/auth', authRoutes);
-
-// Payroll Routes
-app.use('/api/payroll', payrollRoutes);
-
-// Performance Routes
-app.use('/api/performance', performanceRoutes);
-
-// Reports Routes
-app.use('/api/reports', reportsRoutes);
-
-// Settings Routes
-app.use('/api/settings', settingsRoutes);
 
 // 404 handler
 app.use((req, res) => {
-    res.status(404).json({
-        message: `Route ${req.originalUrl} not found`
-    });
+    res.status(404).json({ message: `Route ${req.originalUrl} not found` });
 });
 
 // Error handler
@@ -73,6 +64,7 @@ app.use((err, req, res, next) => {
 const startServer = async () => {
     try {
         await testConnection();
+
         app.listen(PORT, () => {
             console.log(`Server running on port ${PORT}`);
             console.log(`Auth API: http://localhost:${PORT}/api/auth`);

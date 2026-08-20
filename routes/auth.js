@@ -3,9 +3,12 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import dotenv from 'dotenv';
 import { query } from '../config/database.js';
+import { login } from '../controllers/authController.js';
 
 dotenv.config();
 const router = express.Router();
+
+router.post('/login', login);
 
 // ============================================
 // LOGIN API
