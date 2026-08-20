@@ -3,83 +3,72 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import dotenv from 'dotenv';
 import { query } from '../config/database.js';
-import { login } from '../controllers/authController.js';
 
 dotenv.config();
 const router = express.Router();
-
-router.post('/login', login);
 
 // ============================================
 // LOGIN API
 // ============================================
 router.post('/login', async (req, res) => {
     try {
-        const { username, password } = req.body;
+        const { email, password } = req.body;
 
-        // Validate input
-        if (!username || !password) {
-            return res.status(400).json({ 
+        if (!email || !password) {
+            return res.status(400).json({
                 success: false,
-                message: 'Username and password are required' 
+                message: 'Email and password are required'
             });
         }
 
-        console.log(`Login attempt for: ${username}`);
+        console.log(`Login attempt for: ${email}`);
 
-        // Find user by username OR email
         const users = await query(
-            `SELECT 
-                u.id,
-                u.username,
-                u.email,
-                u.password_hash,
-                u.role_id,
-                r.role_name
-            FROM users u
-            LEFT JOIN roles r ON u.role_id = r.role_id
-            WHERE u.username = ? OR u.email = ?`,
-            [username, username]
+            `SELECT
+                user_id,
+                first_name,
+                last_name,
+                email,
+                password_hash,
+                role
+            FROM users
+            WHERE email = ?`,
+            [email]
         );
 
-        // Check if user exists
         if (users.length === 0) {
-            console.log(`Login failed: User not found - ${username}`);
-            return res.status(401).json({ 
+            console.log(`Login failed: User not found - ${email}`);
+            return res.status(401).json({
                 success: false,
-                message: 'Invalid username or password' 
+                message: 'Invalid email or password'
             });
         }
 
         const user = users[0];
 
-        // Verify password
         const isValidPassword = await bcrypt.compare(password, user.password_hash);
-        
+
         if (!isValidPassword) {
-            console.log(`❌ Login failed: Invalid password for ${username}`);
-            return res.status(401).json({ 
+            console.log(`Login failed: Invalid password for ${email}`);
+            return res.status(401).json({
                 success: false,
-                message: 'Invalid username or password' 
+                message: 'Invalid email or password'
             });
         }
 
-        // Generate JWT Token
         const token = jwt.sign(
-            { 
-                user_id: user.id,
-                username: user.username,
+            {
+                user_id: user.user_id,
                 email: user.email,
-                role: user.role_name || 'employee'
+                role: user.role
             },
             process.env.JWT_SECRET || 'your_secret_key_here',
             { expiresIn: '24h' }
         );
 
-        // Remove password hash from response
         const { password_hash, ...userData } = user;
 
-        console.log(`✅ Login successful: ${username}`);
+        console.log(`Login successful: ${email}`);
         res.json({
             success: true,
             message: 'Login successful',
@@ -90,15 +79,15 @@ router.post('/login', async (req, res) => {
 
     } catch (error) {
         console.error('Login error:', error);
-        res.status(500).json({ 
+        res.status(500).json({
             success: false,
-            message: 'Server error during login. Please try again.' 
+            message: 'Server error during login. Please try again.'
         });
     }
 });
 
 // ============================================
-// GET USER PROFILE (Optional)
+// GET USER PROFILE
 // ============================================
 router.get('/profile', async (req, res) => {
     try {
@@ -106,31 +95,30 @@ router.get('/profile', async (req, res) => {
         const token = authHeader && authHeader.split(' ')[1];
 
         if (!token) {
-            return res.status(401).json({ 
+            return res.status(401).json({
                 success: false,
-                message: 'No token provided' 
+                message: 'No token provided'
             });
         }
 
         const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your_secret_key_here');
-        
+
         const users = await query(
-            `SELECT 
-                u.id,
-                u.username,
-                u.email,
-                u.role_id,
-                r.role_name
-            FROM users u
-            LEFT JOIN roles r ON u.role_id = r.role_id
-            WHERE u.id = ?`,
+            `SELECT
+                user_id,
+                first_name,
+                last_name,
+                email,
+                role
+            FROM users
+            WHERE user_id = ?`,
             [decoded.user_id]
         );
 
         if (users.length === 0) {
-            return res.status(404).json({ 
+            return res.status(404).json({
                 success: false,
-                message: 'User not found' 
+                message: 'User not found'
             });
         }
 
@@ -141,15 +129,15 @@ router.get('/profile', async (req, res) => {
 
     } catch (error) {
         if (error.name === 'JsonWebTokenError') {
-            return res.status(401).json({ 
+            return res.status(401).json({
                 success: false,
-                message: 'Invalid token' 
+                message: 'Invalid token'
             });
         }
         console.error('Profile error:', error);
-        res.status(500).json({ 
+        res.status(500).json({
             success: false,
-            message: 'Server error fetching profile' 
+            message: 'Server error fetching profile'
         });
     }
 });
