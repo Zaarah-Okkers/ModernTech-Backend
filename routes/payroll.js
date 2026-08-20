@@ -5,6 +5,33 @@ import { authenticateToken } from '../middleware/auth.js';
 const router = express.Router();
 
 // ============================================
+// GET ALL EMPLOYEES (for payroll dropdown)
+// ============================================
+router.get('/employees', authenticateToken, async (req, res) => {
+    try {
+        const employees = await query(`
+            SELECT 
+                e.employees_id,
+                e.first_name,
+                e.last_name,
+                e.position,
+                e.salary,
+                d.department_name
+            FROM employees e
+            LEFT JOIN departments d ON e.department_id = d.department_id
+            ORDER BY e.first_name, e.last_name
+        `);
+
+        res.json({ employees });
+    } catch (error) {
+        console.error('Error fetching employees:', error);
+        res.status(500).json({ 
+            message: 'Error fetching employees' 
+        });
+    }
+});
+
+// ============================================
 // GET PAYROLL FOR SPECIFIC EMPLOYEE
 // ============================================
 router.get('/employee/:employeeId', authenticateToken, async (req, res) => {
