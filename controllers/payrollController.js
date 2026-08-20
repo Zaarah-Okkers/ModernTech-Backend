@@ -1,28 +1,87 @@
-import { query } from '../config/database.js';
 import { Payroll } from '../models/Payroll.js';
 import { Employee } from '../models/Employee.js';
+import { comparePassword } from '../utils/bcryptHelper.js';
+import { generateToken } from '../utils/jwtHelper.js';
+import { query } from '../config/database.js';
 
 export const payrollController = {
-    getByEmployee: async (req, res) => {
+    // ===== LOGIN METHOD =====
+    login: async (req, res) => {
         try {
-            const { employeeId } = req.params;
-            const payroll = await Payroll.findByEmployee(employeeId);
+            const { username, password } = req.body;
 
-            if (!payroll || payroll.length === 0) {
-                return res.status(404).json({
-                    message: 'No payroll records found for this employee'
+            if (!username || !password) {
+                return res.status(400).json({
+                    message: 'Username and password are required'
                 });
             }
 
-            res.json(payroll);
+            // Find user by username or email
+            const sql = `
+                SELECT u.*, r.role_name 
+                FROM users u
+                LEFT JOIN roles r ON u.role_id = r.id
+                WHERE u.username = ? OR u.email = ?
+            `;
+            const users = await query(sql, [username, username]);
+            const user = users[0];
+
+            if (!user) {
+                return res.status(401).json({
+                    message: 'Invalid credentials'
+                });
+            }
+
+            // Compare password
+            const isValidPassword = await comparePassword(password, user.password_hash);
+            if (!isValidPassword) {
+                return res.status(401).json({
+                    message: 'Invalid credentials'
+                });
+            }
+
+            // Generate JWT token
+            const token = generateToken({
+                id: user.id,
+                username: user.username,
+                email: user.email,
+                role_id: user.role_id
+            });
+
+            res.json({
+                message: 'Login successful',
+                token: token,
+                user: {
+                    id: user.id,
+                    username: user.username,
+                    email: user.email,
+                    role_id: user.role_id,
+                    role_name: user.role_name
+                }
+            });
+
         } catch (error) {
-            console.error('Error fetching employee payroll:', error);
+            console.error('Login error:', error);
             res.status(500).json({
-                message: 'Error fetching payroll records for employee'
+                message: 'Server error during login'
             });
         }
     },
 
+    // ===== GET ALL EMPLOYEES =====
+    getEmployees: async (req, res) => {
+        try {
+            const employees = await Employee.findAll();
+            res.json(employees);
+        } catch (error) {
+            console.error('Error fetching employees:', error);
+            res.status(500).json({
+                message: 'Error fetching employees'
+            });
+        }
+    },
+
+    // ===== GET PAYROLL BY EMPLOYEE AND PERIOD =====
     getByEmployeeAndPeriod: async (req, res) => {
         try {
             const { employeeId, payPeriod } = req.params;
@@ -43,6 +102,7 @@ export const payrollController = {
         }
     },
 
+    // ===== GET PAYROLL BY PERIOD =====
     getByPeriod: async (req, res) => {
         try {
             const { payPeriod } = req.params;
@@ -56,11 +116,10 @@ export const payrollController = {
         }
     },
 
+    // ===== CREATE OR UPDATE PAYROLL =====
     createOrUpdate: async (req, res) => {
         try {
             const payrollData = req.body;
-            
-            console.log('Received payroll data:', payrollData);
             
             const required = ['employee_id', 'pay_period', 'hours_worked', 'gross_pay'];
             for (const field of required) {
@@ -71,22 +130,14 @@ export const payrollController = {
                 }
             }
 
-            // Check if employee exists
-            const employeeCheck = await query(
-                'SELECT employees_id FROM employees WHERE employees_id = ?',
-                [payrollData.employee_id]
-            );
-            
-            console.log('Employee check result:', employeeCheck);
-            
-            if (!employeeCheck || employeeCheck.length === 0) {
+            const employee = await Employee.findById(payrollData.employee_id);
+            if (!employee) {
                 return res.status(404).json({
                     message: 'Employee not found'
                 });
             }
 
             const result = await Payroll.createOrUpdate(payrollData);
-            console.log('Create/Update result:', result);
             
             const updated = await Payroll.findByEmployeeAndPeriod(
                 payrollData.employee_id, 
@@ -98,16 +149,14 @@ export const payrollController = {
                 payroll: updated
             });
         } catch (error) {
-            console.error('Detailed error saving payroll:', error);
-            console.error('Error stack:', error.stack);
+            console.error('Error saving payroll:', error);
             res.status(500).json({
-                message: 'Error saving payroll record',
-                details: error.message,
-                sql: error.sql || null
+                message: 'Error saving payroll record'
             });
         }
     },
 
+    // ===== CALCULATE PAYROLL FROM ATTENDANCE =====
     calculateFromAttendance: async (req, res) => {
         try {
             const { employeeId, payPeriod } = req.params;
@@ -147,6 +196,7 @@ export const payrollController = {
         }
     },
 
+    // ===== GET PAYROLL SUMMARY =====
     getSummary: async (req, res) => {
         try {
             const summary = await Payroll.getSummary();
@@ -159,6 +209,7 @@ export const payrollController = {
         }
     },
 
+    // ===== GET ALL PAYROLL PERIODS =====
     getPeriods: async (req, res) => {
         try {
             const periods = await Payroll.getPeriods();
@@ -167,18 +218,6 @@ export const payrollController = {
             console.error('Error fetching payroll periods:', error);
             res.status(500).json({
                 message: 'Error fetching payroll periods'
-            });
-        }
-    },
-
-    getEmployees: async (req, res) => {
-        try {
-            const employees = await Employee.findAll();
-            res.json(employees);
-        } catch (error) {
-            console.error('Error fetching employees:', error);
-            res.status(500).json({
-                message: 'Error fetching employees'
             });
         }
     }

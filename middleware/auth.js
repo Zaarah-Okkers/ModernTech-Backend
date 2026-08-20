@@ -1,72 +1,29 @@
-import { verifyToken } from '../utils/jwtHelper.js';
+import jwt from 'jsonwebtoken';
+import dotenv from 'dotenv';
 
-// Authentication middleware - verifies JWT token
-export const authenticate = async (req, res, next) => {
+dotenv.config();
+
+export const authenticateToken = (req, res, next) => {
+    // Get token from Authorization header
+    const authHeader = req.headers['authorization'];
+    const token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
+
+    if (!token) {
+        return res.status(401).json({ 
+            success: false,
+            message: 'Access denied. No token provided.' 
+        });
+    }
+
     try {
-        const authHeader = req.headers.authorization;
-        
-        if (!authHeader || !authHeader.startsWith('Bearer ')) {
-            return res.status(401).json({ 
-                message: 'Authentication required. Please provide a valid token.' 
-            });
-        }
-
-        const token = authHeader.split(' ')[1];
-        
-        if (!token) {
-            return res.status(401).json({ 
-                message: 'Authentication token is missing.' 
-            });
-        }
-
-        const decoded = verifyToken(token);
+        // Verify token
+        const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your_secret_key_here');
         req.user = decoded;
         next();
     } catch (error) {
-        if (error.message === 'Token expired') {
-            return res.status(401).json({ 
-                message: 'Your session has expired. Please log in again.' 
-            });
-        }
-        if (error.message === 'Invalid token') {
-            return res.status(403).json({ 
-                message: 'Invalid authentication token.' 
-            });
-        }
-        console.error('Auth error:', error);
-        return res.status(500).json({ 
-            message: 'Authentication error. Please try again.' 
+        return res.status(403).json({ 
+            success: false,
+            message: 'Invalid or expired token' 
         });
     }
-};
-
-// Role-based authorization middleware
-export const authorize = (...allowedRoles) => {
-    return (req, res, next) => {
-        if (!req.user) {
-            return res.status(401).json({ 
-                message: 'Authentication required.' 
-            });
-        }
-
-        const userRole = req.user.roleId;
-        
-        // Get role names from database or use role IDs
-        // For simplicity, assuming roles: 1=hr_staff, 2=manager, 3=employee
-        
-        if (allowedRoles.includes(userRole)) {
-            next();
-        } else {
-            res.status(403).json({ 
-                message: 'You do not have permission to perform this action.' 
-            });
-        }
-    };
-};
-
-// Optional: Roles mapping for easier use
-export const ROLES = {
-    HR_STAFF: 1,
-    MANAGER: 2,
-    EMPLOYEE: 3
 };

@@ -26,9 +26,14 @@ app.get('/api/health', (req, res) => {
     });
 });
 
+// ============================================
+// API ROUTES
+// ============================================
+
+// Auth Routes (Login)
 app.use('/api/auth', authRoutes);
 
-// Payroll routes
+// Payroll Routes
 app.use('/api/payroll', payrollRoutes);
 
 // 404 handler
@@ -51,12 +56,12 @@ const startServer = async () => {
     try {
         await testConnection();
         app.listen(PORT, () => {
-            console.log(`🚀 Server running on port ${PORT}`);
-            console.log(`💰 Payroll API: http://localhost:${PORT}/api/payroll`);
-            console.log(`🏥 Health check: http://localhost:${PORT}/api/health`);
+            console.log(`Server running on port ${PORT}`);
+            console.log(`Auth API: http://localhost:${PORT}/api/auth`);
+            console.log(`Payroll API: http://localhost:${PORT}/api/payroll`);
         });
     } catch (error) {
-        console.error('❌ Failed to start server:', error);
+        console.error('Failed to start server:', error);
         process.exit(1);
     }
 };
