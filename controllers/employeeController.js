@@ -17,14 +17,26 @@ export const getEmployees = async (req, res) => {
         ON e.department_id = d.department_id
       ORDER BY e.employees_id
     `);
-
     res.json(employees);
-
   } catch (error) {
     console.error('Employees API error:', error);
     res.status(500).json({
       error: 'Failed to fetch employees',
       details: error.message
+    });
+  }
+};
+
+export const getDepartments = async (req, res) => {
+  try {
+    const [departments] = await pool.query(
+      'SELECT department_id, department_name FROM departments ORDER BY department_name'
+    );
+    res.json(departments);
+  } catch (error) {
+    console.error('Departments API error:', error);
+    res.status(500).json({
+      error: 'Failed to fetch departments'
     });
   }
 };
@@ -73,7 +85,6 @@ export const createEmployee = async (req, res) => {
       employment_history,
       contact
     });
-
   } catch (error) {
     console.error('Create employee error:', error);
     res.status(500).json({
@@ -85,22 +96,18 @@ export const createEmployee = async (req, res) => {
 export const deleteEmployee = async (req, res) => {
   try {
     const { id } = req.params;
-
     const [result] = await pool.query(
       'DELETE FROM employees WHERE employees_id = ?',
       [id]
     );
-
     if (result.affectedRows === 0) {
       return res.status(404).json({
         error: 'Employee not found'
       });
     }
-
     res.json({
       message: 'Employee deleted successfully'
     });
-
   } catch (error) {
     console.error('Delete employee error:', error);
     res.status(500).json({
