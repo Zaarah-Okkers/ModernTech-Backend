@@ -47,10 +47,9 @@ router.get('/employee/:employeeId', authenticateToken, async (req, res) => {
                 d.department_name,
                 e.salary as base_salary
             FROM payroll p
-            JOIN employees e ON p.employee_id = e.employees_id
+            JOIN employees e ON p.employees_id = e.employees_id
             LEFT JOIN departments d ON e.department_id = d.department_id
-            WHERE p.employee_id = ?
-            ORDER BY p.pay_period DESC
+            WHERE p.employees_id = ?
             LIMIT 1
         `, [employeeId]);
 
@@ -71,15 +70,14 @@ router.get('/employee/:employeeId', authenticateToken, async (req, res) => {
             }
 
             return res.json({
-                employee_id: employeeId,
+                employees_id: employeeId,
                 full_name: `${employee[0].first_name} ${employee[0].last_name}`,
                 position: employee[0].position,
                 department: employee[0].department_name,
                 base_salary: employee[0].salary || 0,
-                bonus: 0,
+                hours_worked: 0,
                 leave_deductions: 0,
-                tax_rate: 18,
-                net_pay: employee[0].salary || 0,
+                final_salary: employee[0].salary || 0,
                 message: 'No payroll record found. Showing base salary.'
             });
         }
@@ -88,8 +86,7 @@ router.get('/employee/:employeeId', authenticateToken, async (req, res) => {
     } catch (error) {
         console.error('Error fetching employee payroll:', error);
         res.status(500).json({ 
-            message: 'Error fetching employee payroll',
-            debug: error.message   // TEMPORARY - remove once bug is found
+            message: 'Error fetching employee payroll' 
         });
     }
 });
@@ -104,6 +101,7 @@ router.post('/calculate', authenticateToken, async (req, res) => {
             base_salary, 
             bonus = 0, 
             leave_hours = 0,
+            hours_worked = 0,
             tax_rate = 18 
         } = req.body;
 
@@ -140,33 +138,28 @@ router.post('/calculate', authenticateToken, async (req, res) => {
             ? `${employee[0].first_name} ${employee[0].last_name}` 
             : 'Unknown';
 
-        // Save or update payroll record, keyed by pay period (YYYY-MM)
-        const now = new Date();
-        const payPeriod = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-
-        // Check if payroll record exists for this period
+        // Your payroll table stores one row per employee (no pay-period column),
+        // so we update the existing row if one exists, otherwise insert a new one.
         const existingPayroll = await query(
-            `SELECT * FROM payroll WHERE employee_id = ? AND pay_period = ?`,
-            [employee_id, payPeriod]
+            `SELECT * FROM payroll WHERE employees_id = ?`,
+            [employee_id]
         );
 
         if (existingPayroll.length > 0) {
             // Update existing record
             await query(
                 `UPDATE payroll 
-                 SET hours_worked = ?, leave_deductions = ?, gross_pay = ?, 
-                     deductions = ?, net_pay = ?
-                 WHERE employee_id = ? AND pay_period = ?`,
-                [leave_hours, leaveDeduction, grossPay, totalDeductions, netPay, 
-                 employee_id, payPeriod]
+                 SET hours_worked = ?, leave_deductions = ?, final_salary = ?
+                 WHERE employees_id = ?`,
+                [hours_worked, leaveDeduction, netPay, employee_id]
             );
         } else {
             // Create new record
             await query(
                 `INSERT INTO payroll 
-                (employee_id, hours_worked, leave_deductions, net_pay, pay_period, gross_pay, deductions)
-                VALUES (?, ?, ?, ?, ?, ?, ?)`,
-                [employee_id, leave_hours, leaveDeduction, netPay, payPeriod, grossPay, totalDeductions]
+                (employees_id, hours_worked, leave_deductions, final_salary)
+                VALUES (?, ?, ?, ?)`,
+                [employee_id, hours_worked, leaveDeduction, netPay]
             );
         }
 
@@ -175,7 +168,7 @@ router.post('/calculate', authenticateToken, async (req, res) => {
             success: true,
             message: 'Payroll calculated successfully',
             employee: {
-                employee_id: employee_id,
+                employees_id: employee_id,
                 full_name: employeeName
             },
             calculation: {
@@ -214,9 +207,8 @@ router.get('/all', authenticateToken, async (req, res) => {
                 e.position,
                 d.department_name
             FROM payroll p
-            JOIN employees e ON p.employee_id = e.employees_id
+            JOIN employees e ON p.employees_id = e.employees_id
             LEFT JOIN departments d ON e.department_id = d.department_id
-            ORDER BY p.pay_period DESC
             LIMIT 50
         `);
 
