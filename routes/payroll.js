@@ -88,7 +88,8 @@ router.get('/employee/:employeeId', authenticateToken, async (req, res) => {
     } catch (error) {
         console.error('Error fetching employee payroll:', error);
         res.status(500).json({ 
-            message: 'Error fetching employee payroll' 
+            message: 'Error fetching employee payroll',
+            debug: error.message   // TEMPORARY - remove once bug is found
         });
     }
 });
