@@ -5,19 +5,15 @@ export const getDashboardStats = async (req, res) => {
     // Query 1: Total employees
     const [employeeCount] = await pool.query('SELECT COUNT(*) as count FROM employees');
     const totalEmployees = employeeCount[0].count;
-
     // Query 2: Payroll processed (sum of final_salary)
     const [payrollData] = await pool.query('SELECT SUM(final_salary) as total FROM payroll');
     const payrollProcessed = payrollData[0].total || 0;
-
     // Query 3: Pending leave requests
     const [pendingLeave] = await pool.query("SELECT COUNT(*) as count FROM leave_request WHERE status = 'Pending'");
     const pendingRequests = pendingLeave[0].count;
-
     // Query 4: Average performance score
     const [performanceData] = await pool.query('SELECT AVG(performance_score) as avg FROM performance');
     const performanceRate = performanceData[0].avg ? parseFloat(performanceData[0].avg).toFixed(1) : 0;
-
     res.json({
       totalEmployees,
       payrollProcessed: parseFloat(payrollProcessed).toFixed(2),
@@ -27,5 +23,31 @@ export const getDashboardStats = async (req, res) => {
   } catch (error) {
     console.error('Dashboard stats error:', error);
     res.status(500).json({ error: 'Failed to fetch dashboard stats' });
+  }
+};
+
+export const getRecentActivity = async (req, res) => {
+  try {
+    const [recentEmployees] = await pool.query(`
+      SELECT 
+        employees_id,
+        first_name,
+        last_name,
+        employment_history
+      FROM employees
+      ORDER BY employees_id DESC
+      LIMIT 5
+    `);
+
+    const activity = recentEmployees.map(emp => ({
+      type: 'new_employee',
+      title: 'New Employee',
+      description: `${emp.first_name} ${emp.last_name} — ${emp.employment_history || 'joined the team'}`
+    }));
+
+    res.json(activity);
+  } catch (error) {
+    console.error('Recent activity error:', error);
+    res.status(500).json({ error: 'Failed to fetch recent activity' });
   }
 };
