@@ -11,7 +11,7 @@ const pool = mysql.createPool({
     database: process.env.DB_NAME || 'moderntech_hr',
     port: process.env.DB_PORT || 3306,
     waitForConnections: true,
-    connectionLimit: 10,
+    connectionLimit: 3,
     queueLimit: 0
 });
 
