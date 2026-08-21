@@ -96,24 +96,24 @@ router.get('/employee/:employeeId', authenticateToken, async (req, res) => {
 // ============================================
 router.post('/calculate', authenticateToken, async (req, res) => {
     try {
-        const { 
-            employee_id, 
-            base_salary, 
-            bonus = 0, 
-            leave_hours = 0,
-            hours_worked = 0,
-            tax_rate = 18 
+        const {
+            employeeId,
+            monthlyBase,
+            hoursWorked = 0,
+            leaveHours = 0,
+            bonus = 0,
+            taxRate = 18
         } = req.body;
 
         // Validate required fields
-        if (!employee_id) {
+        if (!employeeId) {
             return res.status(400).json({ 
                 success: false,
                 message: 'Employee ID is required' 
             });
         }
 
-        if (!base_salary || base_salary <= 0) {
+        if (!monthlyBase || monthlyBase <= 0) {
             return res.status(400).json({ 
                 success: false,
                 message: 'Valid base salary is required' 
@@ -121,17 +121,17 @@ router.post('/calculate', authenticateToken, async (req, res) => {
         }
 
         // Calculate payroll
-        const hourlyRate = base_salary / 160; // 160 hours per month
-        const leaveDeduction = leave_hours * hourlyRate;
-        const grossPay = base_salary + bonus;
-        const taxAmount = grossPay * (tax_rate / 100);
+        const hourlyRate = monthlyBase / 160; // 160 hours per month
+        const leaveDeduction = leaveHours * hourlyRate;
+        const grossPay = monthlyBase + bonus;
+        const taxAmount = grossPay * (taxRate / 100);
         const totalDeductions = taxAmount + leaveDeduction;
         const netPay = grossPay - totalDeductions;
 
         // Get employee details
         const employee = await query(
             'SELECT first_name, last_name, position FROM employees WHERE employees_id = ?',
-            [employee_id]
+            [employeeId]
         );
 
         const employeeName = employee.length > 0 
@@ -142,7 +142,7 @@ router.post('/calculate', authenticateToken, async (req, res) => {
         // so we update the existing row if one exists, otherwise insert a new one.
         const existingPayroll = await query(
             `SELECT * FROM payroll WHERE employees_id = ?`,
-            [employee_id]
+            [employeeId]
         );
 
         if (existingPayroll.length > 0) {
@@ -151,7 +151,7 @@ router.post('/calculate', authenticateToken, async (req, res) => {
                 `UPDATE payroll 
                  SET hours_worked = ?, leave_deductions = ?, final_salary = ?
                  WHERE employees_id = ?`,
-                [hours_worked, leaveDeduction, netPay, employee_id]
+                [hoursWorked, leaveDeduction, netPay, employeeId]
             );
         } else {
             // Create new record
@@ -159,7 +159,7 @@ router.post('/calculate', authenticateToken, async (req, res) => {
                 `INSERT INTO payroll 
                 (employees_id, hours_worked, leave_deductions, final_salary)
                 VALUES (?, ?, ?, ?)`,
-                [employee_id, hours_worked, leaveDeduction, netPay]
+                [employeeId, hoursWorked, leaveDeduction, netPay]
             );
         }
 
@@ -168,17 +168,17 @@ router.post('/calculate', authenticateToken, async (req, res) => {
             success: true,
             message: 'Payroll calculated successfully',
             employee: {
-                employees_id: employee_id,
+                employees_id: employeeId,
                 full_name: employeeName
             },
             calculation: {
-                base_salary: parseFloat(base_salary),
+                base_salary: parseFloat(monthlyBase),
                 bonus: parseFloat(bonus),
-                leave_hours: parseFloat(leave_hours),
+                leave_hours: parseFloat(leaveHours),
                 hourly_rate: parseFloat(hourlyRate.toFixed(2)),
                 leave_deduction: parseFloat(leaveDeduction.toFixed(2)),
                 gross_pay: parseFloat(grossPay.toFixed(2)),
-                tax_rate: parseFloat(tax_rate),
+                tax_rate: parseFloat(taxRate),
                 tax_amount: parseFloat(taxAmount.toFixed(2)),
                 total_deductions: parseFloat(totalDeductions.toFixed(2)),
                 net_pay: parseFloat(netPay.toFixed(2))
